@@ -10,7 +10,7 @@ import { simulateRemoteActivity } from "./db";
  * Guarded on globalThis so Next's dev hot-reload doesn't stack up intervals,
  * and started lazily the first time any board/activity route is hit.
  */
-const TICK_MS = 12_000;
+const TICK_MS = Number(process.env.SIMULATOR_TICK_MS) || 12_000;
 const g = globalThis as unknown as { __taskboardSimulator?: NodeJS.Timeout };
 
 export function ensureSimulator() {

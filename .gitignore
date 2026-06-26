@@ -45,6 +45,9 @@ requirements.md
 
 # local dev artifacts
 dev.log
+prod.log
 *.cookies
 cookies.txt
 c2.txt
+.gif-tmp/
+scripts/_frame*.png

@@ -25,6 +25,7 @@ export function SortableTaskCard({
   return (
     <div
       ref={setNodeRef}
+      data-testid={`task-${task.id}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}

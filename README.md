@@ -1,36 +1,245 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Taskboard — Multi-Workspace Task Board with Shareable Views
 
-## Getting Started
+A SaaS-style frontend where teams manage work across multiple **workspaces**, each
+containing **boards** (Board → Columns → Tasks). Authenticated areas sit behind a
+mock login; selected boards can be published as **public, crawlable, shareable**
+pages. Built as an integrated **Next.js (React) + Node** app.
 
-First, run the development server:
+> Engineering write-up (architecture, trade-offs, decisions) lives in
+> [`ENGINEERING_NOTES.md`](./ENGINEERING_NOTES.md) — with demo GIFs of each feature.
+
+---
+
+## Tech stack
+
+| Concern | Choice | Why |
+| --- | --- | --- |
+| Framework | **Next.js 16 (App Router) + TypeScript** | React UI + Node API in one app; SSR for public/shareable pages |
+| Styling | **Tailwind CSS v4** | Token-driven, consistent spacing/typography |
+| Server state | **TanStack Query** | Caching, optimistic updates, polling |
+| Client state | **Zustand** | Workspace selection, toasts |
+| Drag & drop | **@dnd-kit** | Accessible move/reorder |
+| Validation | **zod** | Request validation shared with inferred types |
+| Mock API | **Next Route Handlers** + in-memory store | Real server routes; enables true SSR of public boards |
+
+## Requirements
+
+- **Node.js 20+** and npm.
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Other scripts:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build   # production build (type-checked)
+npm run start   # serve the production build
+npm run lint    # eslint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Demo login
 
-## Learn More
+Authentication is mocked: **any seeded email with any non-empty password** works.
 
-To learn more about Next.js, take a look at the following resources:
+| Email | Workspaces |
+| --- | --- |
+| `alice@acme.test` | Acme Product, Launch Team |
+| `bob@acme.test` | Acme Product |
+| `carol@acme.test` | Acme Product, Launch Team |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The login screen has one-click chips to fill these in.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## What to try
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Sign in** → land on the workspace home listing its boards.
+2. **Switch workspaces** from the sidebar switcher — the board list follows context
+   (your selection persists across refreshes).
+3. **Open a board** → drag tasks across columns and reorder within a column. Updates
+   are **optimistic** (instant) and reconcile with the server.
+4. **Create / edit / delete** tasks via the task dialog.
+5. **Watch the activity feed** — a server-side simulator mimics teammates; changes
+   stream in via polling, with a toast when someone else makes a change.
+6. **Share a board**: toggle it public and copy the link. Open
+   `/public/board/<id>` in an incognito window — it renders **without auth**, with
+   real SSR HTML, Open Graph/Twitter meta, a generated preview image, and JSON-LD.
+   Also see `/sitemap.xml` and `/robots.txt`.
+7. **Session expiry**: sessions are short-lived; expiry is handled gracefully
+   (toast + redirect to login). You can force it via `POST /api/session/expire`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Requirements coverage
+
+Every requirement from the assignment spec, and how it's met. Deeper rationale is in
+[`ENGINEERING_NOTES.md`](./ENGINEERING_NOTES.md).
+
+### 1. Authentication & Session Handling ✅
+
+![Sign in](docs/media/login.gif)
+
+- **Basic login via mock API** — `POST /api/login` accepts any seeded email + any
+  password and sets an **httpOnly** session cookie.
+- **Restricted access to authenticated areas** — two layers: the edge `proxy.ts` gates
+  page routes on cookie presence, and the `(app)` server layout authoritatively
+  validates the session before rendering. API routes enforce auth and return `401`.
+- **Graceful session expiration** — short TTL; any `401` funnels through one global
+  handler → toast → redirect to `/login?next=…`. Force it via `POST /api/session/expire`.
+
+### 2. Multi-Workspace Support ✅
+
+![Switch workspaces](docs/media/workspace-switch.gif)
+
+- **Belong to multiple workspaces** — seeded users belong to several.
+- **View & switch** — sidebar workspace switcher lists all and changes context.
+- **Consistent context** — selection lives in one Zustand store (`currentWorkspaceId`,
+  persisted to localStorage). Every board/list query derives from it, so context is
+  applied uniformly across the app and survives refresh.
+
+### 3. Task Board (core feature) ✅
+
+![Drag, drop and reorder](docs/media/board-dnd.gif)
+![Create / edit / delete tasks](docs/media/task-crud.gif)
+
+- **Board → Columns → Tasks** structure, displayed as a horizontally-scrolling board.
+- **Move tasks across columns** and **reorder within a column** via @dnd-kit, persisted
+  optimistically.
+- **Create / edit / delete** tasks through a shared dialog.
+- **Task metadata** — title, description, status, priority, assignee (status is derived
+  from the column on move).
+
+### 4. Activity / Updates — simulated real-time ✅
+
+![Activity feed updating live](docs/media/activity.gif)
+
+- **Updates reflected in the UI** — board + activity poll on intervals (TanStack Query
+  `refetchInterval`).
+- **Simulated multi-user updates** — a server-side `simulator` periodically moves tasks
+  and bumps priorities, logging activity entries.
+- **Recent activity surfaced meaningfully** — a live activity rail (with relative times
+  and actor avatars) plus a toast when *someone else* makes a change.
+
+### 5. Data Fetching & Synchronization ✅
+
+- **Integrates with the mocked APIs** through a single typed `apiClient`.
+- **Loading / error / data-consistency states** everywhere — skeletons, retryable error
+  states, empty states; consistency via optimistic updates with rollback + query
+  invalidation. The mock API injects latency so these states are real.
+- **Clean abstraction** — components → hooks → `endpoints` → `apiClient`. UI never calls
+  `fetch` directly.
+
+### 6. Publicly Shareable Views ✅
+
+![Share a board, then open it publicly](docs/media/share-public.gif)
+
+- **No auth required** — `/public/board/[id]` is exempt from the proxy and needs no
+  session.
+- **Meaningful, structured content** — full **SSR** HTML (view-source shows real tasks),
+  not a JS shell.
+- **Good when shared externally** — Open Graph + Twitter meta, a generated
+  `opengraph-image` preview card, canonical URL.
+- **Discoverable / machine-legible** — JSON-LD (`ItemList`) structured data, plus
+  `/sitemap.xml` (public boards only) and `/robots.txt`.
+- **Direct-navigation safe** — only boards toggled public are served; others `404`.
+
+### 7. Layout & UI System ✅
+
+- **Responsive** — sidebar collapses to a drawer; activity rail becomes a toggle; board
+  scrolls horizontally on small screens.
+- **Consistent** — a Tailwind **design-token** system (one neutral ramp, one brand
+  color, semantic roles) drives spacing, typography, and color.
+- **Usability over visual complexity** — deliberately clean, legible surfaces.
+
+---
+
+## Spec design questions, answered
+
+The spec's open-ended "Additional Considerations":
+
+**How do you structure your application for scalability?**
+By responsibility, with a one-way dependency flow: `components → hooks → endpoints →
+apiClient`, and a swappable backend isolated in `lib/mock`. Route groups separate
+public, authenticated, and shareable concerns. Replacing the mock with a real backend
+touches only `endpoints.ts` + `lib/mock`; no component changes.
+
+**How do you manage shared vs local state?**
+Server/shared data (workspaces, boards, tasks, activity) lives in **TanStack Query**
+with hierarchical keys; purely local UI state (current workspace, toasts) lives in
+small **Zustand** stores. Server data is never copied into a global client store, which
+avoids dual-source-of-truth bugs.
+
+**How do you organize API logic?**
+One choke-point. `apiClient` owns transport + error normalization + global 401 handling;
+`endpoints.ts` holds typed per-route wrappers (the only module that knows URLs); zod
+`schemas` validate payloads and provide inferred types shared by client and server;
+`http.ts` standardizes server responses.
+
+**How do you model your data structures?**
+`User · Workspace · Board · Column · Task · Activity`, with **explicit ordering**
+(`columnOrder`, `taskIds[]`) so move/reorder are deterministic array operations applied
+identically on client (optimistic) and server.
+
+**How do you ensure components remain reusable?**
+A presentational UI-primitive kit on design tokens, and feature components that separate
+concerns — e.g. `TaskCard` is pure and reused in the interactive board, the drag
+overlay, and the read-only public view; the drag behavior lives in a separate wrapper.
+
+---
+
+## Mock API
+
+All under `/api`, backed by an in-memory store seeded on boot (resets on restart).
+
+| Method | Route | Auth | Purpose |
+| --- | --- | --- | --- |
+| POST | `/api/login` | – | Mock login, sets httpOnly session cookie |
+| POST | `/api/logout` | – | Clear session |
+| GET | `/api/session` | ✓ | Introspect session |
+| POST | `/api/session/expire` | ✓ | Demo helper: force expiry |
+| GET | `/api/workspaces` | ✓ | Current user's workspaces |
+| GET | `/api/boards?workspaceId=` | ✓ | Boards in a workspace |
+| GET | `/api/board/:id` | ✓ | Full board (columns + tasks + members) |
+| PATCH | `/api/board/:id/share` | ✓ | Toggle public visibility |
+| POST | `/api/task` | ✓ | Create task |
+| PATCH | `/api/task/:id` | ✓ | Edit / move / reorder |
+| DELETE | `/api/task/:id` | ✓ | Delete task |
+| GET | `/api/activity?boardId=` | ✓ | Recent activity (polled) |
+| GET | `/api/public/board/:id` | – | Read-only public board (public boards only) |
+
+---
+
+## Project structure
+
+```
+src/
+  app/
+    (auth)/login/            # login screen (public)
+    (app)/                   # authenticated shell + pages (workspace home, board)
+    public/board/[id]/       # SSR public board + opengraph-image
+    api/                     # Node route handlers (mock backend)
+    sitemap.ts, robots.ts    # discoverability
+  components/
+    ui/                      # reusable primitives (Button, Modal, …)
+    layout/                  # AppShell, Sidebar, WorkspaceSwitcher
+    board/                   # BoardView (dnd), Column, TaskCard, TaskModal, …
+    activity/                # ActivityFeed
+    public/                  # PublicBoardView (read-only)
+    providers/               # QueryProvider, SessionProvider
+  hooks/                     # data hooks (useBoard, useWorkspaces, …)
+  lib/
+    api/                     # apiClient, endpoints, schemas, http helpers
+    mock/                    # in-memory db, seed, simulator
+    query/                   # query keys + optimistic cache transforms
+  store/                     # Zustand stores (workspace, toast)
+  types/                     # domain models
+  proxy.ts                   # route protection (Next "proxy" convention)
+```
+
+See [`ENGINEERING_NOTES.md`](./ENGINEERING_NOTES.md) for the reasoning behind these
+choices, trade-offs, and assumptions.

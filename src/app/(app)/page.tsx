@@ -47,6 +47,7 @@ export default function WorkspaceHome() {
               <Link
                 key={b.id}
                 href={`/board/${b.id}`}
+                data-testid={`board-card-${b.id}`}
                 className="group rounded-xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="mb-2 flex items-start justify-between gap-2">

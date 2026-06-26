@@ -16,11 +16,11 @@ export function ShareButton({ board }: { board: Board }) {
   const share = useShareBoard(board.id);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const [publicUrl, setPublicUrl] = useState("");
 
-  useEffect(() => {
-    setPublicUrl(`${window.location.origin}/public/board/${board.id}`);
-  }, [board.id]);
+  // Derived at render time (no state needed). The link is only shown inside the
+  // popover, which opens client-side, so `window` is always defined when used.
+  const publicUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/public/board/${board.id}` : "";
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -41,7 +41,7 @@ export function ShareButton({ board }: { board: Board }) {
 
   return (
     <div className="relative" ref={ref}>
-      <Button variant="secondary" size="sm" onClick={() => setOpen((o) => !o)}>
+      <Button data-testid="share-button" variant="secondary" size="sm" onClick={() => setOpen((o) => !o)}>
         <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M8.7 13.5l6.6 3.8M15.3 6.7L8.7 10.5" strokeLinecap="round" />
           <circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" />
@@ -61,6 +61,7 @@ export function ShareButton({ board }: { board: Board }) {
             </div>
             <button
               role="switch"
+              data-testid="share-toggle"
               aria-checked={board.isPublic}
               onClick={() => share.mutate(!board.isPublic)}
               disabled={share.isPending}

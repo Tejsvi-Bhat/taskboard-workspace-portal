@@ -30,7 +30,7 @@ export function Column({
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-xl bg-surface-muted/60">
+    <div data-testid={`column-${id}`} className="flex w-72 shrink-0 flex-col rounded-xl bg-surface-muted/60">
       <div className="flex items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-muted-strong">{name}</h3>
@@ -39,6 +39,7 @@ export function Column({
           </span>
         </div>
         <button
+          data-testid={`add-task-${id}`}
           onClick={() => onAddTask(id)}
           className="rounded-md p-1 text-muted hover:bg-border hover:text-foreground"
           aria-label={`Add task to ${name}`}

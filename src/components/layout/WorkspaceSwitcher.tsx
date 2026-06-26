@@ -21,7 +21,8 @@ export function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Default to the first workspace once they load and nothing is selected.
+  // Default to the first workspace once the (server-fetched) list loads and
+  // nothing is selected — a one-time sync from external data into local state.
   useEffect(() => {
     if (!currentId && workspaces && workspaces.length > 0) {
       setCurrent(workspaces[0].id);
@@ -44,6 +45,7 @@ export function WorkspaceSwitcher() {
   return (
     <div className="relative" ref={ref}>
       <button
+        data-testid="ws-switcher"
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2.5 rounded-lg border border-border-strong bg-surface px-2.5 py-2 text-left hover:bg-surface-muted"
         aria-haspopup="listbox"
@@ -73,6 +75,7 @@ export function WorkspaceSwitcher() {
             <button
               key={w.id}
               role="option"
+              data-testid={`ws-option-${w.id}`}
               aria-selected={w.id === current.id}
               onClick={() => {
                 setCurrent(w.id);

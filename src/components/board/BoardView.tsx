@@ -44,11 +44,14 @@ export function BoardView({ boardId }: { boardId: string }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
 
-  // Re-sync local order from server data, but never mid-drag (would yank the card).
+  // Intentionally synchronizing local drag-order with an external system (the
+  // React Query server cache): mirror server order whenever it changes, except
+  // mid-drag where local order is authoritative until the drop is committed.
   useEffect(() => {
     if (activeId || !data) return;
     const next: Record<string, string[]> = {};
     for (const c of data.columns) next[c.id] = c.taskIds;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- external-store sync, see above
     setOrder(next);
   }, [data, activeId]);
 
