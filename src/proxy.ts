@@ -14,11 +14,15 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
  * would corrupt those fetches.
  */
 const PUBLIC_PREFIXES = ["/login", "/public"];
+const PUBLIC_EXACT = new Set(["/robots.txt", "/sitemap.xml"]);
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (
+    PUBLIC_EXACT.has(pathname) ||
+    PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
     return NextResponse.next();
   }
 
