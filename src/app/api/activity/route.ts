@@ -1,4 +1,5 @@
 import { getActivityForBoard, getBoard, getWorkspacesForUser } from "@/lib/mock/db";
+import { ensureSimulator } from "@/lib/mock/simulator";
 import { ok, fail, requireSession } from "@/lib/api/http";
 
 /**
@@ -7,6 +8,7 @@ import { ok, fail, requireSession } from "@/lib/api/http";
  * frequently and should feel snappy.
  */
 export async function GET(req: Request) {
+  ensureSimulator();
   const guard = await requireSession();
   if (guard.response) return guard.response;
 

@@ -1,8 +1,9 @@
-import { BoardView } from "@/components/board/BoardView";
+import { BoardScreen } from "@/components/board/BoardScreen";
 
 /**
  * Authenticated board page. A thin server wrapper that hands the id to the
- * interactive client board. Auth is already enforced by the (app) layout.
+ * interactive client board + activity rail. Auth is already enforced by the
+ * (app) layout.
  */
 export default async function BoardPage({
   params,
@@ -10,5 +11,5 @@ export default async function BoardPage({
   params: Promise<{ boardId: string }>;
 }) {
   const { boardId } = await params;
-  return <BoardView boardId={boardId} />;
+  return <BoardScreen boardId={boardId} />;
 }

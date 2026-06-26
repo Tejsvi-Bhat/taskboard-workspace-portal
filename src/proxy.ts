@@ -7,10 +7,13 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
  * can't read the in-memory store to validate expiry. Authoritative validation
  * (including expiry) happens in the (app) server layout via getCurrentSession().
  *
- * Public surfaces (/login, /public/*, the public API, static assets) are left
- * open so shareable pages and the login screen work without a session.
+ * Public surfaces (/login, /public/*) are left open so shareable pages and the
+ * login screen work without a session. API routes are excluded entirely (see
+ * matcher): they enforce auth themselves and return a 401 JSON envelope, which
+ * is what the client's global session-expiry handling expects — a redirect
+ * would corrupt those fetches.
  */
-const PUBLIC_PREFIXES = ["/login", "/public", "/api/public", "/api/login"];
+const PUBLIC_PREFIXES = ["/login", "/public"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -30,6 +33,6 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Run on everything except Next internals and static files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Run on page routes only — exclude API, Next internals and static files.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
