@@ -42,3 +42,9 @@ next-env.d.ts
 
 # project meta (not part of submission)
 requirements.md
+
+# local dev artifacts
+dev.log
+*.cookies
+cookies.txt
+c2.txt
