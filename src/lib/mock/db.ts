@@ -31,12 +31,20 @@ interface Session {
 interface Store extends SeedData {
   sessions: Map<string, Session>;
   seq: number;
+  /** Whether the "other users" simulator is currently allowed to mutate data. */
+  simulationEnabled: boolean;
 }
 
 const SESSION_TTL_MS = 30 * 60_000; // 30 min — short so expiry is demoable.
 
 function createStore(): Store {
-  return { ...createSeedData(), sessions: new Map(), seq: 1 };
+  return {
+    ...createSeedData(),
+    sessions: new Map(),
+    seq: 1,
+    // On by default (demonstrates simulated real-time); start off with SIMULATOR_ENABLED=0.
+    simulationEnabled: process.env.SIMULATOR_ENABLED !== "0",
+  };
 }
 
 const globalForStore = globalThis as unknown as { __taskboardStore?: Store };
@@ -265,8 +273,18 @@ export function forceExpireSession(token: string | undefined): void {
 
 // --- Simulator hook ---------------------------------------------------------
 
+export function isSimulationEnabled(): boolean {
+  return store.simulationEnabled;
+}
+
+export function setSimulationEnabled(enabled: boolean): boolean {
+  store.simulationEnabled = enabled;
+  return store.simulationEnabled;
+}
+
 /** Used by the activity simulator to mutate a random task on a public/active board. */
 export function simulateRemoteActivity(): Activity | undefined {
+  if (!store.simulationEnabled) return undefined;
   const candidates = store.tasks.filter((t) => t.status !== "done");
   if (candidates.length === 0) return undefined;
 

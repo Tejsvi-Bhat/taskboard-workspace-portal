@@ -65,7 +65,8 @@ The login screen has one-click chips to fill these in.
    are **optimistic** (instant) and reconcile with the server.
 4. **Create / edit / delete** tasks via the task dialog.
 5. **Watch the activity feed** — a server-side simulator mimics teammates; changes
-   stream in via polling, with a toast when someone else makes a change.
+   stream in via polling, with a toast when someone else makes a change. Use the
+   **toggle in the activity rail header** to pause/resume the simulated activity.
 6. **Share a board**: toggle it public and copy the link. Open
    `/public/board/<id>` in an incognito window — it renders **without auth**, with
    real SSR HTML, Open Graph/Twitter meta, a generated preview image, and JSON-LD.
@@ -121,7 +122,8 @@ Every requirement from the assignment spec, and how it's met. Deeper rationale i
 - **Updates reflected in the UI** — board + activity poll on intervals (TanStack Query
   `refetchInterval`).
 - **Simulated multi-user updates** — a server-side `simulator` periodically moves tasks
-  and bumps priorities, logging activity entries.
+  and bumps priorities, logging activity entries. A **toggle in the activity rail**
+  turns this live simulation on/off (server-side flag via `PATCH /api/simulation`).
 - **Recent activity surfaced meaningfully** — a live activity rail (with relative times
   and actor avatars) plus a toast when *someone else* makes a change.
 
@@ -210,6 +212,7 @@ All under `/api`, backed by an in-memory store seeded on boot (resets on restart
 | PATCH | `/api/task/:id` | ✓ | Edit / move / reorder |
 | DELETE | `/api/task/:id` | ✓ | Delete task |
 | GET | `/api/activity?boardId=` | ✓ | Recent activity (polled) |
+| GET/PATCH | `/api/simulation` | ✓ | Read / toggle the live-activity simulator |
 | GET | `/api/public/board/:id` | – | Read-only public board (public boards only) |
 
 ---

@@ -177,8 +177,13 @@ async function main() {
       await page.waitForTimeout(800);
       await dragBetween(page, "c-roadmap-todo", "c-roadmap-progress");
       await page.waitForTimeout(1500);
-      // Wait for one or two simulated "teammate" updates (toast + feed entry).
-      await page.waitForTimeout(9000);
+      // Wait for a couple of simulated "teammate" updates (toast + feed entry).
+      await page.waitForTimeout(6000);
+      // Demonstrate the live-activity toggle: pause, then resume.
+      await page.click("[data-testid=simulation-toggle]");
+      await page.waitForTimeout(2500);
+      await page.click("[data-testid=simulation-toggle]");
+      await page.waitForTimeout(2500);
     },
   });
 

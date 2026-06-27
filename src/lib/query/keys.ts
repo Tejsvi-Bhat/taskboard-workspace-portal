@@ -9,4 +9,5 @@ export const queryKeys = {
   boards: (workspaceId: string) => ["boards", workspaceId] as const,
   board: (boardId: string) => ["board", boardId] as const,
   activity: (boardId: string) => ["activity", boardId] as const,
+  simulation: ["simulation"] as const,
 };

@@ -38,4 +38,9 @@ export const api = {
   // Activity
   activity: (boardId: string) =>
     apiClient.get<{ activities: Activity[] }>(`/api/activity?boardId=${encodeURIComponent(boardId)}`),
+
+  // Simulated-activity feature flag
+  getSimulation: () => apiClient.get<{ enabled: boolean }>("/api/simulation"),
+  setSimulation: (enabled: boolean) =>
+    apiClient.patch<{ enabled: boolean }>("/api/simulation", { enabled }),
 };

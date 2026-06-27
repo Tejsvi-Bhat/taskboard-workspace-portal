@@ -35,6 +35,10 @@ export const shareBoardSchema = z.object({
   isPublic: z.boolean(),
 });
 
+export const simulationSchema = z.object({
+  enabled: z.boolean(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateTaskBody = z.infer<typeof createTaskSchema>;
 export type UpdateTaskBody = z.infer<typeof updateTaskSchema>;
