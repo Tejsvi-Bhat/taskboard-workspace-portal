@@ -5,6 +5,17 @@ containing **boards** (Board → Columns → Tasks). Authenticated areas sit beh
 mock login; selected boards can be published as **public, crawlable, shareable**
 pages. Built as an integrated **Next.js (React) + Node** app.
 
+### 🔗 Live demo
+
+**App:** https://taskboard-workspace-portal.onrender.com
+&nbsp;·&nbsp; sign in with `alice@acme.test` and any password.
+
+**Public shareable board (no login):**
+https://taskboard-workspace-portal.onrender.com/public/board/b-roadmap
+
+> Hosted on Render's free tier — the first request after idle may cold-start
+> (~30–60s), and the in-memory demo data resets on restart (there's no database).
+
 > Engineering write-up (architecture, trade-offs, decisions) lives in
 > [`ENGINEERING_NOTES.md`](./ENGINEERING_NOTES.md) — with demo GIFs of each feature.
 
