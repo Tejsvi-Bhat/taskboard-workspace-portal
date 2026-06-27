@@ -4,8 +4,11 @@ import type { BoardDetail } from "@/types/models";
 /**
  * Read-only, server-rendered board for public/shared pages. Reuses the same
  * TaskCard as the authenticated board (in non-interactive mode) so the public
- * view stays visually consistent without shipping any drag/mutation code. Being
- * pure server-rendered HTML is what makes it crawlable and unfurl-friendly.
+ * view stays visually consistent without shipping any drag/mutation code.
+ *
+ * Intentionally NOT virtualized: the whole point of the public page is to be
+ * crawlable and unfurl-friendly, so every task must be present in the SSR HTML.
+ * (Client windowing renders nothing on the server.)
  */
 export function PublicBoardView({ detail }: { detail: BoardDetail }) {
   const membersById = new Map(detail.members.map((m) => [m.id, m]));

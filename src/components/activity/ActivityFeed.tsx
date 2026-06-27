@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useActivity } from "@/hooks/useActivity";
 import { useSimulation } from "@/hooks/useSimulation";
 import { useCurrentUser } from "@/components/providers/SessionProvider";
@@ -28,6 +29,17 @@ export function ActivityFeed({ boardId }: { boardId: string }) {
   const me = useCurrentUser();
   const simulation = useSimulation();
   const seen = useRef<Set<string> | null>(null);
+
+  // Virtualize the feed so it stays smooth as activity accumulates over time —
+  // only the visible rows are mounted, regardless of total length.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rows = activities ?? [];
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 68,
+    overscan: 10,
+  });
 
   useEffect(() => {
     if (!activities) return;
@@ -73,7 +85,7 @@ export function ActivityFeed({ boardId }: { boardId: string }) {
         </button>
       </div>
 
-      <div className="scrollbar-thin flex-1 space-y-1 overflow-y-auto p-2">
+      <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto p-2">
         {isLoading &&
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex gap-2 p-2">
@@ -85,10 +97,29 @@ export function ActivityFeed({ boardId }: { boardId: string }) {
             </div>
           ))}
 
-        {activities?.map((a) => <ActivityItem key={a.id} activity={a} />)}
-
-        {activities && activities.length === 0 && (
+        {!isLoading && rows.length === 0 && (
           <p className="px-3 py-6 text-center text-sm text-muted">No activity yet.</p>
+        )}
+
+        {rows.length > 0 && (
+          <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+            {virtualizer.getVirtualItems().map((item) => (
+              <div
+                key={rows[item.index].id}
+                ref={virtualizer.measureElement}
+                data-index={item.index}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${item.start}px)`,
+                }}
+              >
+                <ActivityItem activity={rows[item.index]} />
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

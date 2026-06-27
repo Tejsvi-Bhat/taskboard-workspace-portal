@@ -224,6 +224,28 @@ overlay, and the read-only public view; the drag behavior lives in a separate wr
 
 ---
 
+## Optional enhancements implemented
+
+From the spec's optional list:
+
+| Enhancement | Status & how |
+| --- | --- |
+| **Optimistic updates** | ✅ Drag/drop, task CRUD and share toggle apply instantly with rollback |
+| **Advanced filtering / search** | ✅ Board filter bar: text search + priority + assignee, with a shown/total count |
+| **Undo/redo for task actions** | ✅ Per-board command history (move/edit/create/delete) with toolbar buttons and Ctrl/Cmd+Z · Shift+Z |
+| **Performance for large datasets** | ✅ A seeded 240-task board; the **activity feed is virtualized** (windowed) and task cards are **memoized** so the big board stays smooth with drag-and-drop intact |
+| **Improved shared/public views** | ✅ SSR + OG image + Twitter card + JSON-LD + sitemap/robots + runtime URL detection |
+| **Other usability/robustness** | ✅ Activity feed with pause toggle, toasts, graceful session expiry, responsive drawers, full loading/error/empty states |
+
+**A deliberate trade-off:** the interactive board is **not** windowed. Reliably
+composing list virtualization with accessible drag-and-drop is fragile, so large
+boards use memoization instead (verified smooth at 240 tasks with working DnD),
+while virtualization is applied to the activity feed where it's purely
+beneficial. The public board is intentionally fully rendered (not virtualized)
+so all tasks are present in the crawlable SSR HTML.
+
+---
+
 ## Mock API
 
 All under `/api`, backed by an in-memory store seeded on boot (resets on restart).

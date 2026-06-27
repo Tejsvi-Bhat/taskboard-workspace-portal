@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -99,6 +99,16 @@ export function BoardView({ boardId }: { boardId: string }) {
 
   const tasksById = useMemo(() => indexBy(data?.tasks ?? [], (t) => t.id), [data]);
   const membersById = useMemo(() => indexBy(data?.members ?? [], (m) => m.id), [data]);
+
+  // Stable handlers so memoized cards don't re-render on every board update.
+  const handleAddTask = useCallback((columnId: string) => setModal({ kind: "create", columnId }), []);
+  const handleTaskClick = useCallback(
+    (taskId: string) => {
+      const task = tasksById.get(taskId);
+      if (task) setModal({ kind: "edit", task });
+    },
+    [tasksById],
+  );
 
   if (isLoading) return <Loading label="Loading board…" />;
   if (isError || !data) return <ErrorState message="Couldn't load this board." onRetry={() => refetch()} />;
@@ -231,11 +241,8 @@ export function BoardView({ boardId }: { boardId: string }) {
               tasksById={tasksById}
               membersById={membersById}
               filtering={filterActive}
-              onAddTask={(columnId) => setModal({ kind: "create", columnId })}
-              onTaskClick={(taskId) => {
-                const task = tasksById.get(taskId);
-                if (task) setModal({ kind: "edit", task });
-              }}
+              onAddTask={handleAddTask}
+              onTaskClick={handleTaskClick}
             />
           ))}
         </div>

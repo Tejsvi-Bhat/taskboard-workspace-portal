@@ -68,7 +68,7 @@ export function Column({
                 key={tid}
                 task={task}
                 assignee={task.assigneeId ? membersById.get(task.assigneeId) ?? null : null}
-                onClick={() => onTaskClick(tid)}
+                onSelect={onTaskClick}
               />
             );
           })}

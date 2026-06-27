@@ -180,16 +180,25 @@ automated systems.
 - **Auth gate trade-off**: the in-memory store can't be read from the edge runtime, so
   the proxy checks cookie presence and the server layout does the authoritative check.
   This is a deliberate two-layer design, not an oversight.
-- **Scope discipline.** Undo/redo, search/filter, and large-dataset virtualization were
-  intentionally left as documented next steps to keep the submission focused and
-  polished rather than broad and shallow.
+- **Interactive-board virtualization trade-off.** The activity feed is virtualized
+  (`@tanstack/react-virtual`), but the interactive board is not — composing windowing
+  with accessible drag-and-drop reliably is fragile, so large boards use **memoized
+  cards** instead (verified smooth at 240 tasks with DnD intact). The public board is
+  fully rendered so all tasks remain in the crawlable SSR HTML.
 
-## 10. What I'd do next
+## 10. Optional enhancements implemented
+
+Beyond the core requirements: **optimistic updates**, **search/filter** (text +
+priority + assignee), **undo/redo** (per-board command history with keyboard
+shortcuts), **large-dataset handling** (virtualized activity feed + memoized cards +
+a 240-task seed board), a **pause toggle** for simulated activity, and the rich
+**public/shareable** views. See the README "Optional enhancements" table.
+
+## 11. What I'd do next
 
 - WebSocket/SSE channel to replace polling.
-- Server-persisted ordering with fractional ranks if real-time concurrent reordering
-  becomes a requirement.
-- Search/filter across a workspace; undo/redo on task mutations (the optimistic
-  transform layer already makes this tractable).
-- Tests: unit tests for the pure cache transforms and route handlers; Playwright e2e
-  (the capture script in `scripts/` is a starting point).
+- Server-persisted ordering with fractional ranks for concurrent reordering.
+- Combine windowing with drag-and-drop on the interactive board (the harder version of
+  the virtualization trade-off above).
+- Tests: unit tests for the pure cache transforms / command inverses and route
+  handlers; Playwright e2e (the capture script in `scripts/` is a starting point).

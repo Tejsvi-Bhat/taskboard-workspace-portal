@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils/cn";
 import { PriorityBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -6,9 +7,10 @@ import type { Task, User } from "@/types/models";
 /**
  * Pure, presentational task card. Intentionally free of drag/data concerns so it
  * can be reused verbatim in the authenticated board (wrapped for sorting) and in
- * the read-only public view.
+ * the read-only public view. Memoized so large boards don't re-render every card
+ * on unrelated updates (polling, dragging a different card).
  */
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
   task,
   assignee,
   onClick,
@@ -41,4 +43,4 @@ export function TaskCard({
       </div>
     </Wrapper>
   );
-}
+});

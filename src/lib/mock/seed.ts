@@ -114,8 +114,70 @@ export function createSeedData(): SeedData {
     activity("a-3", "b-sprint", "task_created", "t-8", "Alice Park", "created \"Optimistic task updates\"", 20),
   ];
 
+  // A large, public board to exercise large-dataset handling (virtualized
+  // rendering on the public view, memoized cards on the interactive board).
+  generateBacklog({ boards, columns, tasks, users });
+
   return { users, workspaces, boards, columns, tasks, activities };
 }
+
+/**
+ * Generates a large "Engineering Backlog" board (~240 tasks) so large-dataset
+ * behavior is demonstrable. Deterministic (no randomness) so the seed is stable.
+ */
+function generateBacklog(data: {
+  boards: Board[];
+  columns: Column[];
+  tasks: Task[];
+  users: User[];
+}) {
+  const COUNT = 240;
+  const cols = [
+    { id: "c-backlog-todo", name: "Backlog" },
+    { id: "c-backlog-progress", name: "In Progress" },
+    { id: "c-backlog-done", name: "Done" },
+  ];
+  const priorities: TaskPriorityLike[] = ["low", "medium", "high", "urgent"];
+  const areas = ["API", "UI", "Infra", "Docs", "Billing", "Search", "Auth", "Mobile", "Analytics", "Perf"];
+
+  data.boards.push({
+    id: "b-backlog",
+    workspaceId: "ws-acme",
+    name: "Engineering Backlog",
+    description: "A large backlog used to demonstrate performance with many tasks.",
+    isPublic: true,
+    columnOrder: cols.map((c) => c.id),
+  });
+
+  const colTaskIds: Record<string, string[]> = { "c-backlog-todo": [], "c-backlog-progress": [], "c-backlog-done": [] };
+
+  for (let i = 1; i <= COUNT; i++) {
+    // Weighted toward the backlog column to look realistic.
+    const col = i % 5 === 0 ? cols[2] : i % 3 === 0 ? cols[1] : cols[0];
+    const id = `t-bk-${i}`;
+    const area = areas[i % areas.length];
+    data.tasks.push(
+      task(
+        id,
+        "b-backlog",
+        col.id,
+        `[${area}] Backlog item #${i}`,
+        `Auto-generated backlog task ${i} for the ${area} area.`,
+        col.id === "c-backlog-done" ? "done" : col.id === "c-backlog-progress" ? "in_progress" : "todo",
+        priorities[i % priorities.length],
+        data.users[i % data.users.length].id,
+        i * 7,
+      ),
+    );
+    colTaskIds[col.id].push(id);
+  }
+
+  for (const c of cols) {
+    data.columns.push({ id: c.id, boardId: "b-backlog", name: c.name, taskIds: colTaskIds[c.id] });
+  }
+}
+
+type TaskPriorityLike = Task["priority"];
 
 function task(
   id: string,
