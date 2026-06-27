@@ -67,12 +67,11 @@ export function ShareButton({ board }: { board: Board }) {
               disabled={share.isPending}
               className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
                 board.isPublic ? "bg-brand" : "bg-border-strong"
-              }`}
+              } disabled:opacity-60`}
             >
               <span
-                className={`absolute top-0.5 size-5 rounded-full bg-white transition-transform ${
-                  board.isPublic ? "translate-x-5" : "translate-x-0.5"
-                }`}
+                className="absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform"
+                style={{ transform: board.isPublic ? "translateX(20px)" : "translateX(0)" }}
               />
             </button>
           </div>

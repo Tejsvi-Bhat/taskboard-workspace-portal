@@ -78,9 +78,8 @@ export function ActivityFeed({ boardId }: { boardId: string }) {
           } disabled:opacity-60`}
         >
           <span
-            className={`absolute top-0.5 size-4 rounded-full bg-white transition-transform ${
-              simulation.enabled ? "translate-x-4" : "translate-x-0.5"
-            }`}
+            className="absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform"
+            style={{ transform: simulation.enabled ? "translateX(16px)" : "translateX(0)" }}
           />
         </button>
       </div>
