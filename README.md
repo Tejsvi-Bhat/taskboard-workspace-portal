@@ -42,6 +42,25 @@ npm run start   # serve the production build
 npm run lint    # eslint
 ```
 
+## Deploy (Render)
+
+Deploys as a **Node web service** (it needs a running server for SSR, the API
+routes, and the in-memory store — not a static site). A [`render.yaml`](./render.yaml)
+blueprint is included.
+
+1. On Render: **New → Blueprint**, connect this repo (or **New → Web Service** and
+   copy the settings from `render.yaml`).
+2. Build: `npm ci && npm run build` · Start: `npx next start -p $PORT` ·
+   Health check: `/api/health`.
+3. Deploy. No env vars are required — the app auto-detects its public URL from
+   Render's `RENDER_EXTERNAL_URL` (used for canonical/OG/sitemap links). Set
+   `NEXT_PUBLIC_SITE_URL` only for a custom domain.
+
+**Important:** run a **single instance**. The mock backend holds state in memory
+and runs a background simulator interval; neither is shared across instances.
+On the free plan the service spins down when idle, so the in-memory data resets
+on cold start (expected — there's no database).
+
 ### Demo login
 
 Authentication is mocked: **any seeded email with any non-empty password** works.

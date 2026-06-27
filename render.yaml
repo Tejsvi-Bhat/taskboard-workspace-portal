@@ -1,0 +1,29 @@
+# Render Blueprint — deploy as a Node web service.
+# In Render: New → Blueprint → connect this repo, or New → Web Service.
+#
+# Notes:
+# - Single instance only: the mock backend keeps state in memory and runs a
+#   background "simulator" interval, neither of which is shared across instances.
+# - siteUrl auto-detects RENDER_EXTERNAL_URL at runtime, so no URL env is needed
+#   (set NEXT_PUBLIC_SITE_URL only for a custom domain).
+services:
+  - type: web
+    name: taskboard-workspace-portal
+    runtime: node
+    plan: free
+    region: oregon
+    numInstances: 1
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -p $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.5
+      - key: NODE_ENV
+        value: production
+      # Calmer simulated activity in production (optional; default is 12s).
+      - key: SIMULATOR_TICK_MS
+        value: "15000"
+      # Set SIMULATOR_ENABLED to "0" to start with live simulation off.
+      # Set NEXT_PUBLIC_SITE_URL only if using a custom domain.
