@@ -18,6 +18,13 @@ import { Column } from "./Column";
 import { TaskCard } from "./TaskCard";
 import { TaskModal } from "./TaskModal";
 import { BoardHeader } from "./BoardHeader";
+import {
+  BoardFilters,
+  emptyFilters,
+  isFilterActive,
+  matchesFilter,
+  type BoardFilterState,
+} from "./BoardFilters";
 import { useBoard, useTaskMutations } from "@/hooks/useBoard";
 import { Loading, ErrorState } from "@/components/ui/States";
 import type { Task } from "@/types/models";
@@ -43,6 +50,7 @@ export function BoardView({ boardId }: { boardId: string }) {
   const [order, setOrder] = useState<Record<string, string[]>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
+  const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
 
   // Intentionally synchronizing local drag-order with an external system (the
   // React Query server cache): mirror server order whenever it changes, except
@@ -125,9 +133,26 @@ export function BoardView({ boardId }: { boardId: string }) {
   const activeTask = activeId ? tasksById.get(activeId) : null;
   const orderedColumns = data.columns;
 
+  // Filtering is a view concern: derive the visible ids per column from the full
+  // order. DnD still operates on the full `order`, so positions persist correctly.
+  const filterActive = isFilterActive(filters);
+  const visibleIdsFor = (columnId: string) => {
+    const ids = order[columnId] ?? [];
+    return filterActive ? ids.filter((id) => matchesFilter(tasksById.get(id), filters)) : ids;
+  };
+  const total = data.tasks.length;
+  const shown = orderedColumns.reduce((n, c) => n + visibleIdsFor(c.id).length, 0);
+
   return (
     <div className="flex h-full flex-col">
       <BoardHeader board={data.board} members={data.members} />
+      <BoardFilters
+        filters={filters}
+        onChange={setFilters}
+        members={data.members}
+        total={total}
+        shown={shown}
+      />
 
       <DndContext
         sensors={sensors}
@@ -142,9 +167,10 @@ export function BoardView({ boardId }: { boardId: string }) {
               key={c.id}
               id={c.id}
               name={c.name}
-              taskIds={order[c.id] ?? c.taskIds}
+              taskIds={visibleIdsFor(c.id)}
               tasksById={tasksById}
               membersById={membersById}
+              filtering={filterActive}
               onAddTask={(columnId) => setModal({ kind: "create", columnId })}
               onTaskClick={(taskId) => {
                 const task = tasksById.get(taskId);

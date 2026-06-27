@@ -16,6 +16,7 @@ export function Column({
   taskIds,
   tasksById,
   membersById,
+  filtering = false,
   onAddTask,
   onTaskClick,
 }: {
@@ -24,6 +25,7 @@ export function Column({
   taskIds: string[];
   tasksById: Map<string, Task>;
   membersById: Map<string, User>;
+  filtering?: boolean;
   onAddTask: (columnId: string) => void;
   onTaskClick: (taskId: string) => void;
 }) {
@@ -72,14 +74,17 @@ export function Column({
           })}
         </SortableContext>
 
-        {taskIds.length === 0 && (
-          <button
-            onClick={() => onAddTask(id)}
-            className="w-full rounded-lg border border-dashed border-border-strong py-6 text-xs text-muted hover:border-brand hover:text-brand"
-          >
-            + Add a task
-          </button>
-        )}
+        {taskIds.length === 0 &&
+          (filtering ? (
+            <p className="px-2 py-6 text-center text-xs text-muted">No matching tasks</p>
+          ) : (
+            <button
+              onClick={() => onAddTask(id)}
+              className="w-full rounded-lg border border-dashed border-border-strong py-6 text-xs text-muted hover:border-brand hover:text-brand"
+            >
+              + Add a task
+            </button>
+          ))}
       </div>
     </div>
   );
