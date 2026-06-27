@@ -245,6 +245,18 @@ while virtualization is applied to the activity feed where it's purely
 beneficial. The public board is intentionally fully rendered (not virtualized)
 so all tasks are present in the crawlable SSR HTML.
 
+**Search & filter**
+
+![Search and filter](docs/media/search-filter.gif)
+
+**Undo / redo** (also Ctrl/Cmd+Z · Shift+Z)
+
+![Undo and redo](docs/media/undo-redo.gif)
+
+**Offline** — change made offline is queued and synced on reconnect
+
+![Offline support](docs/media/offline.gif)
+
 ---
 
 ## Mock API

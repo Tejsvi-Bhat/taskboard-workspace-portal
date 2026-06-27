@@ -22,6 +22,8 @@ import path from "node:path";
 
 const execFileP = promisify(execFile);
 const BASE = process.env.BASE_URL || "http://localhost:3000";
+// Optional comma-separated allowlist of scenario names to (re)capture.
+const ONLY = (process.env.ONLY || "").split(",").map((s) => s.trim()).filter(Boolean);
 const ROOT = process.cwd();
 const VIDEO_DIR = path.join(ROOT, ".gif-tmp");
 const OUT_DIR = path.join(ROOT, "docs", "media");
@@ -38,6 +40,7 @@ async function toGif(webmPath, outName, { fps = 12, width = 840, trimStart = 1.0
 }
 
 async function record(browser, { name, storageState, run, gifOpts }) {
+  if (ONLY.length && !ONLY.includes(name)) return;
   console.log("● capturing", name);
   const ctx = await browser.newContext({
     viewport: VIEWPORT,
@@ -47,7 +50,7 @@ async function record(browser, { name, storageState, run, gifOpts }) {
   });
   const page = await ctx.newPage();
   try {
-    await run(page);
+    await run(page, ctx);
   } finally {
     const video = page.video();
     await ctx.close();
@@ -209,6 +212,64 @@ async function main() {
       await page.goto(`${BASE}/public/board/b-sprint`);
       await page.waitForSelector('h1:has-text("Engineering Sprint")');
       await page.waitForTimeout(2200);
+    },
+  });
+
+  // 7) Search & filter.
+  await record(browser, {
+    name: "search-filter",
+    storageState: auth,
+    run: async (page) => {
+      await page.goto(`${BASE}/board/b-roadmap`);
+      await page.waitForSelector("[data-testid^=task-]");
+      await page.waitForTimeout(900);
+      for (const ch of "onboarding") {
+        await page.type('input[type="search"]', ch, { delay: 60 });
+      }
+      await page.waitForTimeout(1500);
+      await page.fill('input[type="search"]', "");
+      await page.waitForTimeout(700);
+      await page.selectOption('select[aria-label="Filter by priority"]', "urgent");
+      await page.waitForTimeout(1600);
+      await page.click('button:has-text("Clear")');
+      await page.waitForTimeout(1000);
+    },
+  });
+
+  // 8) Undo / redo.
+  await record(browser, {
+    name: "undo-redo",
+    storageState: auth,
+    run: async (page) => {
+      await page.goto(`${BASE}/board/b-roadmap`);
+      await page.waitForSelector("[data-testid^=task-]");
+      await page.waitForTimeout(900);
+      await dragBetween(page, "c-roadmap-todo", "c-roadmap-progress");
+      await page.waitForTimeout(1300);
+      await page.click('[aria-label="Undo"]');
+      await page.waitForTimeout(1500);
+      await page.click('[aria-label="Redo"]');
+      await page.waitForTimeout(1500);
+    },
+  });
+
+  // 9) Offline: queue a change offline, then reconnect to sync.
+  await record(browser, {
+    name: "offline",
+    storageState: auth,
+    run: async (page, ctx) => {
+      await page.goto(`${BASE}/board/b-roadmap`);
+      await page.waitForSelector("[data-testid^=task-]");
+      await page.waitForTimeout(800);
+      await ctx.setOffline(true);
+      await page.waitForTimeout(1300);
+      await page.click("[data-testid=add-task-c-roadmap-todo]");
+      await page.waitForSelector("#task-title");
+      await page.type("#task-title", "Drafted while offline", { delay: 45 });
+      await page.click('button:has-text("Create task")');
+      await page.waitForTimeout(1800);
+      await ctx.setOffline(false);
+      await page.waitForTimeout(2800);
     },
   });
 
