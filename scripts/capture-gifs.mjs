@@ -1,12 +1,17 @@
 /**
  * Records short screen captures of each feature flow with Playwright and converts
- * them to GIFs (via the bundled ffmpeg-static) into docs/media/. Used to produce
- * the demo GIFs embedded in README / ENGINEERING_NOTES.
+ * them to GIFs (via ffmpeg-static) into docs/media/. Produces the demo GIFs
+ * embedded in README / ENGINEERING_NOTES.
+ *
+ * This is a one-off authoring tool, NOT an app dependency — Playwright and
+ * ffmpeg are intentionally NOT in package.json so they don't bloat installs or
+ * the deploy build. Install them on demand only when regenerating the GIFs.
  *
  * Usage:
- *   1. Start the app (ideally with a fast simulator so the activity GIF is lively):
- *        SIMULATOR_TICK_MS=4000 npm run dev
- *   2. node scripts/capture-gifs.mjs
+ *   1. npm i -D playwright ffmpeg-static && npx playwright install chromium
+ *   2. Start the app (a fast simulator makes the activity GIF livelier):
+ *        SIMULATOR_TICK_MS=4000 npm run start   # or npm run dev
+ *   3. node scripts/capture-gifs.mjs
  */
 import { chromium } from "playwright";
 import ffmpegPath from "ffmpeg-static";
