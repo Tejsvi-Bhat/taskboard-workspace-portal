@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
+import { OfflineBanner } from "@/components/providers/OfflineBanner";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -13,7 +14,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <OfflineBanner />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-border bg-surface md:block">
         <Sidebar />
@@ -45,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className={cn("min-h-0 flex-1 overflow-hidden")}>{children}</main>
+      </div>
       </div>
     </div>
   );

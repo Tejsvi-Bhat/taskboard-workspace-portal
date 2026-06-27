@@ -191,8 +191,17 @@ automated systems.
 Beyond the core requirements: **optimistic updates**, **search/filter** (text +
 priority + assignee), **undo/redo** (per-board command history with keyboard
 shortcuts), **large-dataset handling** (virtualized activity feed + memoized cards +
-a 240-task seed board), a **pause toggle** for simulated activity, and the rich
-**public/shareable** views. See the README "Optional enhancements" table.
+a 240-task seed board), **offline support**, a **pause toggle** for simulated
+activity, and the rich **public/shareable** views. See the README "Optional
+enhancements" table.
+
+**Offline support** leans on React Query's connectivity model: the board reads from
+cache while offline, and mutations (already optimistic) are *paused* on the network
+and **auto-replayed on reconnect** — so a change made offline shows immediately and
+persists once the connection returns. A banner surfaces the offline/syncing state and
+the number of queued changes. Scoped deliberately to in-session connectivity loss; a
+service-worker PWA for full cold-load offline was left out to avoid the risk of SW
+asset-caching breaking the live deployment.
 
 ## 11. What I'd do next
 

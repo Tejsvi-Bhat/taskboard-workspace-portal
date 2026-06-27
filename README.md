@@ -231,6 +231,7 @@ From the spec's optional list:
 | Enhancement | Status & how |
 | --- | --- |
 | **Optimistic updates** | ✅ Drag/drop, task CRUD and share toggle apply instantly with rollback |
+| **Offline support** | ✅ Connectivity banner; the board stays usable from cache offline and mutations are **queued and replayed on reconnect** (verified: create offline → reconnect → persists server-side) |
 | **Advanced filtering / search** | ✅ Board filter bar: text search + priority + assignee, with a shown/total count |
 | **Undo/redo for task actions** | ✅ Per-board command history (move/edit/create/delete) with toolbar buttons and Ctrl/Cmd+Z · Shift+Z |
 | **Performance for large datasets** | ✅ A seeded 240-task board; the **activity feed is virtualized** (windowed) and task cards are **memoized** so the big board stays smooth with drag-and-drop intact |
