@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -26,8 +26,10 @@ import {
   type BoardFilterState,
 } from "./BoardFilters";
 import { useBoard, useTaskMutations } from "@/hooks/useBoard";
+import { useHistory } from "@/hooks/useHistory";
 import { Loading, ErrorState } from "@/components/ui/States";
 import type { Task } from "@/types/models";
+import type { TaskPosition } from "@/lib/history/types";
 
 type ModalState =
   | null
@@ -46,11 +48,13 @@ type ModalState =
 export function BoardView({ boardId }: { boardId: string }) {
   const { data, isLoading, isError, refetch } = useBoard(boardId);
   const { updateTask } = useTaskMutations(boardId);
+  const history = useHistory(boardId);
 
   const [order, setOrder] = useState<Record<string, string[]>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
+  const dragOrigin = useRef<TaskPosition | null>(null);
 
   // Intentionally synchronizing local drag-order with an external system (the
   // React Query server cache): mirror server order whenever it changes, except
@@ -68,6 +72,31 @@ export function BoardView({ boardId }: { boardId: string }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Keyboard shortcuts for undo/redo. Refs keep the handler reading the latest
+  // history functions without re-binding the listener on every render.
+  const undoRef = useRef(history.undo);
+  const redoRef = useRef(history.redo);
+  useEffect(() => {
+    undoRef.current = history.undo;
+    redoRef.current = history.redo;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoRef.current();
+      } else if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        redoRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const tasksById = useMemo(() => indexBy(data?.tasks ?? [], (t) => t.id), [data]);
   const membersById = useMemo(() => indexBy(data?.members ?? [], (m) => m.id), [data]);
 
@@ -84,7 +113,10 @@ export function BoardView({ boardId }: { boardId: string }) {
   };
 
   function handleDragStart(e: DragStartEvent) {
-    setActiveId(String(e.active.id));
+    const id = String(e.active.id);
+    setActiveId(id);
+    const col = findContainer(id);
+    dragOrigin.current = col ? { columnId: col, position: order[col].indexOf(id) } : null;
   }
 
   function handleDragOver(e: DragOverEvent) {
@@ -128,6 +160,18 @@ export function BoardView({ boardId }: { boardId: string }) {
       taskId: String(active.id),
       patch: { columnId: overCol, position: newIndex },
     });
+
+    // Record the move for undo/redo (only if the position actually changed).
+    const before = dragOrigin.current;
+    dragOrigin.current = null;
+    if (before && (before.columnId !== overCol || before.position !== newIndex)) {
+      history.record({
+        kind: "move",
+        taskId: String(active.id),
+        before,
+        after: { columnId: overCol, position: newIndex },
+      });
+    }
   }
 
   const activeTask = activeId ? tasksById.get(activeId) : null;
@@ -152,6 +196,22 @@ export function BoardView({ boardId }: { boardId: string }) {
         members={data.members}
         total={total}
         shown={shown}
+        actions={
+          <>
+            <HistoryButton
+              label="Undo"
+              disabled={!history.canUndo}
+              onClick={history.undo}
+              path="M9 7H5m0 0v4m0-4 3.5 3.5A7 7 0 1 1 6 16"
+            />
+            <HistoryButton
+              label="Redo"
+              disabled={!history.canRedo}
+              onClick={history.redo}
+              path="M11 7h4m0 0v4m0-4-3.5 3.5A7 7 0 1 0 14 16"
+            />
+          </>
+        }
       />
 
       <DndContext
@@ -197,11 +257,46 @@ export function BoardView({ boardId }: { boardId: string }) {
           mode={modal}
           columns={data.columns}
           members={data.members}
+          onRecord={history.record}
           onClose={() => setModal(null)}
         />
       )}
     </div>
   );
+}
+
+/** Small icon button used for the Undo/Redo controls. */
+function HistoryButton({
+  label,
+  path,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  path: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={`${label} (${label === "Undo" ? "Ctrl/Cmd+Z" : "Ctrl/Cmd+Shift+Z"})`}
+      aria-label={label}
+      className="rounded-md p-1.5 text-muted-strong hover:bg-surface-muted disabled:opacity-40 disabled:hover:bg-transparent"
+    >
+      <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d={path} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }
 
 function indexBy<T>(items: T[], key: (item: T) => string): Map<string, T> {

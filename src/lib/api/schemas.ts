@@ -19,6 +19,10 @@ export const createTaskSchema = z.object({
   description: z.string().max(2000).optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   assigneeId: z.string().nullable().optional(),
+  // Optional restore hints — used by undo/redo to re-create a task exactly
+  // (same id and position) so the operation is reversible.
+  id: z.string().min(1).optional(),
+  position: z.number().int().min(0).optional(),
 });
 
 export const updateTaskSchema = z.object({

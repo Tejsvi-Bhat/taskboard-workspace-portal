@@ -128,14 +128,20 @@ export interface CreateTaskInput {
   description?: string;
   priority?: Task["priority"];
   assigneeId?: string | null;
+  /** Restore hints for undo/redo (re-create with the same id / at the same spot). */
+  id?: string;
+  position?: number;
 }
 
 export function createTask(input: CreateTaskInput, actorName: string): Task | undefined {
   const column = store.columns.find((c) => c.id === input.columnId);
   if (!column || column.boardId !== input.boardId) return undefined;
 
+  // Honor a restore id only if it isn't already taken; otherwise mint a fresh one.
+  const id = input.id && !store.tasks.some((t) => t.id === input.id) ? input.id : nextId("t");
+
   const task: Task = {
-    id: nextId("t"),
+    id,
     boardId: input.boardId,
     columnId: input.columnId,
     title: input.title,
@@ -148,7 +154,12 @@ export function createTask(input: CreateTaskInput, actorName: string): Task | un
   };
 
   store.tasks.push(task);
-  column.taskIds.push(task.id);
+  if (input.position !== undefined) {
+    const pos = clamp(input.position, 0, column.taskIds.length);
+    column.taskIds.splice(pos, 0, task.id);
+  } else {
+    column.taskIds.push(task.id);
+  }
   logActivity(input.boardId, "task_created", task.id, actorName, `created "${task.title}"`);
   return task;
 }

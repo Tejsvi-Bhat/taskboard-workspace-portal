@@ -6,12 +6,18 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select, Field } from "@/components/ui/Input";
 import { useTaskMutations } from "@/hooks/useBoard";
 import type { Column, Task, TaskPriority, User } from "@/types/models";
+import type { Command, EditFields } from "@/lib/history/types";
 
 type Mode =
   | { kind: "create"; columnId: string }
   | { kind: "edit"; task: Task };
 
 const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "urgent"];
+
+/** True if any edited field differs (used to avoid recording no-op edits). */
+function hasChanged(before: EditFields, after: EditFields): boolean {
+  return (Object.keys(after) as (keyof EditFields)[]).some((k) => before[k] !== after[k]);
+}
 
 /**
  * Unified create/edit task dialog. Reuses the same form for both flows and talks
@@ -22,12 +28,14 @@ export function TaskModal({
   mode,
   columns,
   members,
+  onRecord,
   onClose,
 }: {
   boardId: string;
   mode: Mode;
   columns: Column[];
   members: User[];
+  onRecord: (cmd: Command) => void;
   onClose: () => void;
 }) {
   const isEdit = mode.kind === "edit";
@@ -49,36 +57,51 @@ export function TaskModal({
     e.preventDefault();
     if (titleError) return;
 
-    if (isEdit) {
-      const movedColumn = columnId !== mode.task.columnId;
-      updateTask.mutate({
-        taskId: mode.task.id,
-        patch: {
-          title: title.trim(),
-          description: description.trim(),
-          priority,
-          assigneeId: assigneeId || null,
-          ...(movedColumn ? { columnId } : {}),
-        },
-      });
-    } else {
-      createTask.mutate({
-        boardId,
-        columnId,
+    if (isEdit && existing) {
+      const movedColumn = columnId !== existing.columnId;
+      const after: EditFields = {
         title: title.trim(),
         description: description.trim(),
         priority,
         assigneeId: assigneeId || null,
-      });
+        ...(movedColumn ? { columnId } : {}),
+      };
+      const before: EditFields = {
+        title: existing.title,
+        description: existing.description,
+        priority: existing.priority,
+        assigneeId: existing.assigneeId,
+        ...(movedColumn ? { columnId: existing.columnId } : {}),
+      };
+      updateTask.mutate({ taskId: existing.id, patch: after });
+      if (hasChanged(before, after)) {
+        onRecord({ kind: "edit", taskId: existing.id, before, after });
+      }
+    } else {
+      const position = columns.find((c) => c.id === columnId)?.taskIds.length ?? 0;
+      createTask
+        .mutateAsync({
+          boardId,
+          columnId,
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          assigneeId: assigneeId || null,
+        })
+        .then((res) => {
+          if (res?.task) onRecord({ kind: "create", task: res.task, position });
+        })
+        .catch(() => {});
     }
     onClose();
   }
 
   function handleDelete() {
-    if (existing) {
-      deleteTask.mutate(existing.id);
-      onClose();
-    }
+    if (!existing) return;
+    const position = columns.find((c) => c.id === existing.columnId)?.taskIds.indexOf(existing.id) ?? 0;
+    onRecord({ kind: "delete", task: existing, position });
+    deleteTask.mutate(existing.id);
+    onClose();
   }
 
   return (

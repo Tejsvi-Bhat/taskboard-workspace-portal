@@ -44,12 +44,14 @@ export function BoardFilters({
   members,
   total,
   shown,
+  actions,
 }: {
   filters: BoardFilterState;
   onChange: (next: BoardFilterState) => void;
   members: User[];
   total: number;
   shown: number;
+  actions?: React.ReactNode;
 }) {
   const active = isFilterActive(filters);
 
@@ -118,6 +120,8 @@ export function BoardFilters({
           </button>
         </>
       )}
+
+      {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
     </div>
   );
 }
